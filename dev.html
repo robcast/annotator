@@ -149,8 +149,8 @@
           showDeleteButton: true,
         })
         .addPlugin(Editor)
-        .setStore(Store, {prefix: 'http://localhost:5000'})
-        .addPlugin(Auth, {tokenUrl: 'http://localhost:4000/api/token'})
+        .setStore(Store, {prefix: 'http://localhost:18080/AnnotationManagerN4J/annotator'})
+        .addPlugin(Auth, {tokenUrl: 'http://localhost:8080/test/annotator/token'})
         .addPlugin(Permissions)
         .addPlugin(Unsupported)
         .getInstance();
