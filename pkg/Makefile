@@ -18,6 +18,8 @@ ANNOTATOR=\
 PLUGINS=\
 	plugin/annotateitpermissions.coffee \
 	plugin/auth.coffee \
+	plugin/authlogin.coffee \
+	plugin/digilibintegrator.coffee \
 	plugin/document.coffee \
 	plugin/filter.coffee \
 	plugin/kitchensink.coffee \
@@ -25,7 +27,7 @@ PLUGINS=\
 	plugin/permissions.coffee \
 	plugin/store.coffee \
 	plugin/tags.coffee \
-	plugin/unsupported.coffee
+	plugin/unsupported.coffee 
 
 ANNOTATOR_FULL=\
 	$(ANNOTATOR) \
@@ -39,6 +41,17 @@ ANNOTATOR_FULL=\
 	plugin/tags.coffee \
 	plugin/kitchensink.coffee
 
+ANNOTATOR_DL=\
+	$(ANNOTATOR) \
+	plugin/unsupported.coffee \
+	plugin/authlogin.coffee \
+	plugin/store.coffee \
+	plugin/permissions.coffee \
+	plugin/filter.coffee \
+	plugin/markdown.coffee \
+	plugin/tags.coffee \
+	plugin/digilibintegrator.coffee
+
 BOOKMARKLET=\
 	$(ANNOTATOR) \
 	plugin/auth.coffee \
@@ -51,7 +64,7 @@ BOOKMARKLET=\
 BOOKMARKLET_CFG=../contrib/bookmarklet/config.json
 BOOKMARKLET_SRC=../contrib/bookmarklet/src/bookmarklet.js
 
-all: annotator plugins annotator-full bookmarklet
+all: annotator plugins annotator-full annotator-dl bookmarklet
 
 annotator: annotator.min.js annotator.min.css
 
@@ -59,6 +72,8 @@ PLUGIN_NAMES=$(notdir $(PLUGINS))
 plugins: $(addprefix annotator.,$(PLUGIN_NAMES:.coffee=.min.js))
 
 annotator-full: annotator-full.min.js
+
+annotator-dl: annotator-dl.min.js
 
 _preamble.map:
 	@../tools/preamble > _preamble.coffee
@@ -71,6 +86,10 @@ annotator.js: $(ANNOTATOR) _preamble.map
 annotator-full.js: $(ANNOTATOR_FULL) _preamble.map
 	@cd ..; coffeebarx $(addprefix src/, $(ANNOTATOR_FULL)) -xso pkg/_annotator-full.js
 	@mapcat _preamble.map _annotator-full.map -m annotator-full.map -j annotator-full.js
+
+annotator-dl.js: $(ANNOTATOR_DL) _preamble.map
+	@cd ..; coffeebarx $(addprefix src/, $(ANNOTATOR_DL)) -xso pkg/_annotator-dl.js
+	@mapcat _preamble.map _annotator-dl.map -m annotator-dl.map -j annotator-dl.js
 
 annotator.css: ../css/annotator.css
 	@../tools/data_uri_ify <../css/annotator.css >annotator.css
