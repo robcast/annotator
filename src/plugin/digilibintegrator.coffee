@@ -44,10 +44,6 @@ class Annotator.Plugin.DigilibIntegrator extends Annotator.Plugin
         # setup in digilib
         @digilib.setupAnnotation(annotation)
         
-        # Fire annotationCreated events so that plugins can react to them.
-        if fireEvents
-          this.publish('annotationCreated', [annotation])
-
         annotation
         
       else
