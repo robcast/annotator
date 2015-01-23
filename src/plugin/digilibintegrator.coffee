@@ -29,15 +29,12 @@ class Annotator.Plugin.DigilibIntegrator extends Annotator.Plugin
   # selected range and higlights the selection in the DOM.
   #
   # annotation - An annotation Object to initialise.
-  # fireEvents - Will fire the 'annotationCreated' event if true.
   #
   # Returns the initialised annotation.
-  _setupAnnotation: (annotation, fireEvents=true) ->
+  _setupAnnotation: (annotation) ->
       if @selectedShapes  or annotation.shapes? or @selectedAreas? or annotation.areas?
         # do digilib annotation shapes
         annotation.shapes or= @selectedShapes
-        # areas are deprecated
-        annotation.areas or= @selectedAreas
         # compatibility crap
         annotation.highlights = []
         annotation.ranges = []
