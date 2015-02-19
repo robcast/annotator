@@ -254,6 +254,9 @@ class Annotator.Editor extends Annotator.Widget
       input[0].type = 'checkbox'
       element.addClass('annotator-checkbox')
       element.append($('<label />', {for: field.id, html: field.label}))
+    else if field.type == 'select'
+      element.addClass('annotator-select')
+      element.append($('<label />', {for: field.id, html: field.label}))
 
     @element.find('ul:first').append(element)
 
