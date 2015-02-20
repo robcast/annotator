@@ -25,6 +25,7 @@ PLUGINS=\
 	plugin/kitchensink.coffee \
 	plugin/markdown.coffee \
 	plugin/permissions.coffee \
+	plugin/grouppermissions.coffee \
 	plugin/store.coffee \
 	plugin/tags.coffee \
 	plugin/unsupported.coffee 
@@ -36,6 +37,7 @@ ANNOTATOR_FULL=\
 	plugin/store.coffee \
 	plugin/permissions.coffee \
 	plugin/annotateitpermissions.coffee \
+	plugin/grouppermissions.coffee \
 	plugin/filter.coffee \
 	plugin/markdown.coffee \
 	plugin/tags.coffee \
@@ -47,6 +49,7 @@ ANNOTATOR_DL=\
 	plugin/authlogin.coffee \
 	plugin/store.coffee \
 	plugin/permissions.coffee \
+	plugin/grouppermissions.coffee \
 	plugin/filter.coffee \
 	plugin/markdown.coffee \
 	plugin/tags.coffee \
@@ -58,6 +61,7 @@ BOOKMARKLET=\
 	plugin/store.coffee \
 	plugin/permissions.coffee \
 	plugin/annotateitpermissions.coffee \
+	plugin/grouppermissions.coffee \
 	plugin/unsupported.coffee \
 	plugin/tags.coffee
 

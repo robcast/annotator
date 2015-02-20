@@ -38,7 +38,7 @@ class Annotator.Plugin.GroupPermissions extends Annotator.Plugin
     # user - A String username or null if no user is set.
     #
     # Returns the String provided as user object.
-    userId: (user) -> user
+    userId: (user) -> if user?.id? then user.id else user
 
     # Public: Used by the plugin to determine a display name for the @user
     # property. By default this accepts and returns the user String but can be
@@ -47,15 +47,8 @@ class Annotator.Plugin.GroupPermissions extends Annotator.Plugin
     # user - A String username or null if no user is set.
     #
     # Returns the String provided as user object
-    userString: (user) -> user
+    userString: (user) -> if user?.name? then user.name else user
 
-    # Public: Used by the plugin to determine if the user is a group.
-    # 
-    # user - A String username or null if no user is set.
-    #
-    # Returns if the user is a group.
-    userIsGroup: (user) -> user?.indexOf('group:') == 0
-    
     # Public: Used by Permissions#authorize to determine whether a user can
     # perform an action on an annotation. Overriding this function allows
     # a far more complex permissions sysyem.
@@ -114,6 +107,8 @@ class Annotator.Plugin.GroupPermissions extends Annotator.Plugin
         for token in tokens
           if this.userId(user) == token
             return true
+          else if user?.groups? and token in user.groups
+            return true
 
         # No tokens matched: action should not be performed.
         return false
@@ -157,7 +152,7 @@ class Annotator.Plugin.GroupPermissions extends Annotator.Plugin
       this.setUser(@options.user)
       delete @options.user
 
-    if @options.groups
+    if @options.groups and @options.groups.length > 0
       this.setGroups(@options.groups)
       delete @options.groups
 
@@ -195,8 +190,8 @@ class Annotator.Plugin.GroupPermissions extends Annotator.Plugin
     if @options.showAdminGroupSelection == true
       @annotator.editor.addField({
         type:   'select'
-        label:  Annotator._t('group to <strong>manage</strong> this annotation')
-        load:   createCallback('updateGroupsField', 'admin')
+        label:  Annotator._t(' group <strong>manages</strong> this annotation')
+        load:   createCallback('updateGroupPermissionsField', 'admin')
         submit: createCallback('updateAnnotationPermissions', 'admin')
       })
 
@@ -232,15 +227,18 @@ class Annotator.Plugin.GroupPermissions extends Annotator.Plugin
   #
   # Returns nothing.
   setUser: (user) ->
-    @user = user
+    if typeof user == 'string'
+      @user = {id: user, name: user}
+    else
+      @user = user
 
   # Public: Sets the Permissions#groups property.
   #
   # groups - A list of groups the user is member of.
   # 
   setGroups: (groups) ->
-    console.debug('set groups=', groups)
     @groups = groups
+    @user.groups = ('group:'+g for g in groups)
 
   # Event callback: Appends the @user and @options.permissions objects to the
   # provided annotation object. Only appends the user if one has been set.
@@ -291,10 +289,7 @@ class Annotator.Plugin.GroupPermissions extends Annotator.Plugin
     field.hide() unless this.authorize('admin', annotation)
 
     # See if we can authorise without a user.
-    if this.authorize(action, annotation || {}, null)
-      input.attr('checked', 'checked')
-    else
-      input.removeAttr('checked')
+    input.prop('checked', this.authorize(action, annotation, null))
 
   # Field callback: Updates the state of the "belongs to group" selector
   #
@@ -303,7 +298,7 @@ class Annotator.Plugin.GroupPermissions extends Annotator.Plugin
   # annotation - An annotation Object.
   #
   # Returns nothing.
-  updateGroupsField: (action, field, annotation) =>
+  updateGroupPermissionsField: (action, field, annotation) =>
     field = $(field)
 
     # Do not show field if current user is not admin.
@@ -313,12 +308,13 @@ class Annotator.Plugin.GroupPermissions extends Annotator.Plugin
 
     field.show()
     input = field.find('select').removeAttr('disabled')
+    # use first user/group id to show selected
+    permuser = annotation.permissions?[action][0] or @options.userId(@user)
     # clear out and re-add options
     input.empty()
-    input.append($('<option>', {selected: this.authorize(action, annotation), html: ' '}))
+    input.append($('<option>', {selected: permuser == @options.userId(@user), html: ' '}))
     for g in @groups
-      input.append($('<option>', {selected: this.authorize(action, annotation, 'group:'+g), html: g}))
-
+      input.append($('<option>', {selected: permuser == 'group:'+g, html: g}))
 
   # Field callback: updates the annotation.permissions object based on the state
   # of the field checkbox. If it is checked then permissions are set to world
@@ -335,7 +331,11 @@ class Annotator.Plugin.GroupPermissions extends Annotator.Plugin
 
     dataKey = type + '-permissions'
 
-    if $(field).find('input').is(':checked')
+    if group = $(field).find('select').val()
+      # select restricts to a group
+      annotation.permissions[type] = ['group:'+group]
+    else if $(field).find('input').is(':checked')
+      # allow anyone
       annotation.permissions[type] = []
     else
       # Clearly, the permissions model allows for more complex entries than this,
@@ -343,6 +343,10 @@ class Annotator.Plugin.GroupPermissions extends Annotator.Plugin
       # from viewing" as meaning "allow only me to view". This may want changing
       # in the future.
       annotation.permissions[type] = [@options.userId(@user)]
+
+    # updating admin permission should be last - clean up
+    if type == 'admin'
+      this._cleanPermissions(annotation)
 
   # Field callback: updates the annotation viewer to inlude the display name
   # for the user obtained through Permissions#options.userString().
@@ -355,9 +359,12 @@ class Annotator.Plugin.GroupPermissions extends Annotator.Plugin
   updateViewer: (field, annotation, controls) =>
     field = $(field)
 
-    username = @options.userString annotation.user
+    username = @options.userString(annotation.user)
     if annotation.user and username and typeof username == 'string'
       user = Annotator.Util.escape(@options.userString(annotation.user))
+      if annotation.permissions?.admin?[0].indexOf('group:') == 0
+        # add group name if managed by group
+        user += ' (Group '+annotation.permissions.admin[0].substr(6)+')'
       field.html(user).addClass('annotator-user')
     else
       field.remove()
@@ -366,13 +373,30 @@ class Annotator.Plugin.GroupPermissions extends Annotator.Plugin
       controls.hideEdit()   unless this.authorize('update', annotation)
       controls.hideDelete() unless this.authorize('delete', annotation)
 
+  # Updates the permissions to unify user/group ids and enforce permissions hierarchy.
+  #
+  # Uses admin permission user for all non-free permissions.
+  # Sets e.g. read permission to free if update is free.
+  #
+  # Returns nothing.
+  _cleanPermissions: (annotation) =>
+    # highest permission is admin
+    perm = annotation.permissions['admin']
+    # descending order of permissions
+    for type in ['delete', 'update', 'read']
+      if annotation.permissions[type].length == 0
+        # all lower permissions are also free
+        perm = []
+      else
+        # keep higher permission
+        annotation.permissions[type] = perm
+
   # Sets the Permissions#user property on the basis of a received authToken.
   #
   # token - the authToken received by the Auth plugin
   #
   # Returns nothing.
   _setAuthFromToken: (token) =>
-    console.debug('groupperm: setauth token=', token)
     this.setUser(token.userId)
     if token.memberOf?
       this.setGroups(token.memberOf)
