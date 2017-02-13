@@ -382,8 +382,11 @@ class Annotator.Plugin.GroupPermissions extends Annotator.Plugin
   _cleanPermissions: (annotation) =>
     # highest permission is admin
     perm = annotation.permissions['admin']
+    # delete should be same as admin 
+    # ignore setting because permissions UI does not set delete initially
+    annotation.permissions['delete'] = perm
     # descending order of permissions
-    for type in ['delete', 'update', 'read']
+    for type in ['update', 'read']
       if annotation.permissions[type].length == 0
         # all lower permissions are also free
         perm = []
