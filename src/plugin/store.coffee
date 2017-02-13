@@ -176,7 +176,10 @@ class Annotator.Plugin.Store extends Annotator.Plugin
   # Returns nothing.
   annotationDeleted: (annotation) ->
     if annotation in this.annotations
-      this._apiRequest 'destroy', annotation, (() => this.unregisterAnnotation(annotation))
+      this._apiRequest 'destroy', annotation, (() =>
+        # hertzhaft: additional event
+        this.publish('annotationDestroyed', [annotation])
+        this.unregisterAnnotation(annotation))
 
   # Public: Registers an annotation with the Store. Used to check whether an
   # annotation has already been created when using Store#annotationCreated().
@@ -231,6 +234,8 @@ class Annotator.Plugin.Store extends Annotator.Plugin
     else
       $.extend(annotation, data)
 
+    # hertzhaft: additional event
+    this.publish('annotationStored', [data])
     # Update the elements with our copies of the annotation objects (e.g.
     # with ids from the server).
     $(annotation.highlights).data('annotation', annotation)
@@ -259,7 +264,9 @@ class Annotator.Plugin.Store extends Annotator.Plugin
   #
   # Returns nothing.
   _onLoadAnnotations: (data=[]) =>
-
+    # hertzhaft: additional event
+    this.publish("annotationRead", [@annotations, data])
+	
     annotationMap = {}
     for a in @annotations
       annotationMap[a.id] = a
@@ -299,6 +306,8 @@ class Annotator.Plugin.Store extends Annotator.Plugin
   #
   # Returns nothing.
   _onLoadAnnotationsFromSearch: (data={}) =>
+    # hertzhaft: additional event
+    this.publish('annotationSearchResult', [@annotations, data])
     this._onLoadAnnotations(data.rows || [])
 
   # Public: Dump an array of serialized annotations
